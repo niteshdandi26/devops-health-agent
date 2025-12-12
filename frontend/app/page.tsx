@@ -21,7 +21,8 @@ export default function Dashboard() {
 
   const fetchHealth = async () => {
     try {
-      const res = await fetch('http://localhost:8000/analyze', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const res = await fetch(`${apiUrl}/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -34,6 +35,39 @@ export default function Dashboard() {
     } catch (err) {
       setError('Failed to fetch health data');
       setLoading(false);
+    }
+  };
+
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handleFileUpload = async () => {
+    if (!file) return;
+
+    setUploading(true);
+    setError('');
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setLatestCheck(data);
+        setFile(null); // Clear file after successful upload
+      } else {
+        setError(data.error || 'Upload failed');
+      }
+    } catch (err) {
+      setError('Failed to upload file');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -107,6 +141,43 @@ export default function Dashboard() {
             <p className="text-2xl font-bold">
               {latestCheck?.analysis?.severity || 'UNKNOWN'}
             </p>
+          </div>
+        </div>
+
+        {/* File Upload Section */}
+        <div className="bg-white rounded-lg shadow-sm border p-6 mb-8">
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <span className="text-2xl">📁</span>
+            Upload Your Log File
+          </h2>
+          <div className="space-y-4">
+            <div className="flex items-center gap-4">
+              <input
+                type="file"
+                accept=".log,.txt"
+                onChange={(e) => setFile(e.target.files?.[0] || null)}
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
+              />
+              <button
+                onClick={handleFileUpload}
+                disabled={!file || uploading}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap flex items-center gap-2"
+              >
+                {uploading ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    Analyzing...
+                  </>
+                ) : (
+                  'Analyze File'
+                )}
+              </button>
+            </div>
+            {file && (
+              <p className="text-sm text-gray-600">
+                Selected: <span className="font-medium">{file.name}</span> ({(file.size / 1024).toFixed(2)} KB)
+              </p>
+            )}
           </div>
         </div>
 
