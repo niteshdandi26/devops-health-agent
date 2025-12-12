@@ -1,0 +1,78 @@
+id: devops-health-monitor-ip
+namespace: production
+description: AI-powered DevOps health monitoring (using Windows IP)
+
+triggers:
+  - id: schedule
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "*/10 * * * *"
+
+tasks:
+  # First, test if API is reachable
+  - id: test_connection
+    type: io.kestra.plugin.core.http.Request
+    uri: "http://192.168.1.6:8000"
+    method: GET
+    allowFailed: true
+
+  - id: check_connection
+    type: io.kestra.plugin.core.log.Log
+    message: |
+      🔍 Connection Test: {{ outputs.test_connection.code }}
+      API Response: {{ outputs.test_connection.body }}
+
+  - id: sample_log
+    type: io.kestra.plugin.core.log.Log
+    message: |
+      📋 Testing with sample error log:
+      [ERROR] Database connection failed
+      [ERROR] Connection timeout after 30s
+
+  - id: analyze
+    type: io.kestra.plugin.core.http.Request
+    uri: "http://192.168.1.6:8000/analyze"
+    method: POST
+    contentType: application/json
+    allowFailed: true
+    body: |
+      {
+        "logs": "[2024-12-10 08:32:54] ERROR: Database connection failed\n[2024-12-10 08:32:54] ERROR: Connection timeout after 30s"
+      }
+
+  - id: show_results
+    type: io.kestra.plugin.core.log.Log
+    message: |
+      
+      ╔════════════════════════════════════════════════════════════╗
+      ║           🤖 AI AGENT ANALYSIS RESULTS                    ║
+      ╚════════════════════════════════════════════════════════════╝
+      
+      📊 Response Code: {{ outputs.analyze.code }}
+      
+      {% if outputs.analyze.code == 200 %}
+      📊 STATUS: {{ outputs.analyze.body.status }}
+      🤖 MODEL: {{ outputs.analyze.body.model }}
+      ⚡ PROVIDER: {{ outputs.analyze.body.provider }}
+      
+      ❌ ERROR DETECTED:
+         {{ outputs.analyze.body.analysis.error }}
+      
+      🔍 ROOT CAUSE:
+         {{ outputs.analyze.body.analysis.cause }}
+      
+      💡 RECOMMENDED SOLUTION:
+         {{ outputs.analyze.body.analysis.solution }}
+      
+      ⚠️  SEVERITY LEVEL: {{ outputs.analyze.body.analysis.severity }}
+      
+      Analysis completed at {{ outputs.analyze.body.timestamp }}
+      {% else %}
+      ❌ API Request Failed!
+      Response Code: {{ outputs.analyze.code }}
+      
+      🔧 Troubleshooting:
+      - Make sure API is running: python main.py in API folder
+      - Check if you can access: http://192.168.1.6:8000
+      {% endif %}
+      
+      ╚════════════════════════════════════════════════════════════╝

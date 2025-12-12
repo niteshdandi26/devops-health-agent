@@ -1,0 +1,36 @@
+id: devops-health-monitor
+namespace: production
+description: AI-powered DevOps health monitoring
+
+triggers:
+  - id: schedule
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "*/10 * * * *"
+
+tasks:
+  - id: sample_log
+    type: io.kestra.plugin.core.log.Log
+    message: |
+      📋 Analyzing sample error log...
+
+  - id: analyze
+    type: io.kestra.plugin.core.http.Request
+    uri: "http://192.168.1.6:8000/analyze"
+    method: POST
+    contentType: application/json
+    body: |
+      {
+        "logs": "[2024-12-10 08:32:54] ERROR: Database connection failed\n[2024-12-10 08:32:54] ERROR: Connection timeout after 30s"
+      }
+
+  - id: show_raw_response
+    type: io.kestra.plugin.core.log.Log
+    message: |
+      
+      ╔════════════════════════════════════════════════════════════╗
+      ║           🤖 AI AGENT ANALYSIS RESULTS                    ║
+      ╚════════════════════════════════════════════════════════════╝
+      
+      {{ outputs.analyze.body }}
+      
+      ╚════════════════════════════════════════════════════════════╝
