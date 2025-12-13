@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { RefreshCw, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import { RefreshCw, AlertTriangle, CheckCircle2, Clock, TrendingUp, Activity, Zap, Shield, Brain, Database } from 'lucide-react';
 
 interface HealthCheck {
   timestamp: string;
@@ -12,211 +12,258 @@ interface HealthCheck {
     solution: string;
     severity: string;
   };
+  model: string;
+  provider: string;
 }
 
 export default function Dashboard() {
   const [latestCheck, setLatestCheck] = useState<HealthCheck | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const fetchHealth = async () => {
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const res = await fetch(`${apiUrl}/analyze`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          logs: '[2024-12-10] ERROR: Database connection timeout\n[2024-12-10] Max connections reached: 100/100'
-        })
-      });
-      const data = await res.json();
-      setLatestCheck(data);
-      setLoading(false);
-    } catch (err) {
-      setError('Failed to fetch health data');
-      setLoading(false);
-    }
-  };
-
-  const [file, setFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-
-  const handleFileUpload = async () => {
-    if (!file) return;
-
-    setUploading(true);
+    setLoading(true);
     setError('');
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const res = await fetch('/api/upload', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/analyze`, {
         method: 'POST',
-        body: formData
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          logs: `[${new Date().toISOString()}] ERROR: Database connection failed
+[${new Date().toISOString()}] ERROR: Connection timeout after 30 seconds
+[${new Date().toISOString()}] ERROR: Max retries (3) exceeded
+[${new Date().toISOString()}] CRITICAL: Service degradation detected`
+        })
       });
 
-      const data = await res.json();
+      if (!response.ok) throw new Error('API request failed');
 
-      if (res.ok) {
-        setLatestCheck(data);
-        setFile(null); // Clear file after successful upload
-      } else {
-        setError(data.error || 'Upload failed');
-      }
+      const data = await response.json();
+      setLatestCheck(data);
     } catch (err) {
-      setError('Failed to upload file');
+      setError(err instanceof Error ? err.message : 'Failed to fetch health data');
     } finally {
-      setUploading(false);
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchHealth();
+    const interval = setInterval(fetchHealth, 60000);
+    return () => clearInterval(interval);
   }, []);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <RefreshCw className="w-12 h-12 animate-spin text-blue-500" />
-      </div>
-    );
-  }
-
-  const isHealthy = latestCheck?.analysis?.severity === 'LOW';
+  const getSeverityColor = (severity: string) => {
+    const colors = {
+      CRITICAL: 'from-red-500 to-pink-600',
+      HIGH: 'from-orange-500 to-red-500',
+      MEDIUM: 'from-yellow-500 to-orange-500',
+      LOW: 'from-green-500 to-emerald-500',
+      UNKNOWN: 'from-gray-500 to-slate-500'
+    };
+    return colors[severity as keyof typeof colors] || colors.UNKNOWN;
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                DevOps Health Monitor
-              </h1>
-              <p className="text-gray-500 mt-1">
-                AI-powered autonomous monitoring
-              </p>
-            </div>
-            <button
-              onClick={fetchHealth}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              <RefreshCw className="w-4 h-4" />
-              Refresh
-            </button>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      {/* Animated background */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -inset-[10px] opacity-50">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
+          <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-yellow-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
+          <div className="absolute bottom-1/4 left-1/3 w-96 h-96 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow-sm border p-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-500">Status</span>
-              {isHealthy ? (
-                <CheckCircle className="w-6 h-6 text-green-600" />
-              ) : (
-                <AlertCircle className="w-6 h-6 text-red-600" />
-              )}
-            </div>
-            <p className="text-2xl font-bold">
-              {isHealthy ? 'Healthy' : 'Issues Found'}
-            </p>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm border p-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-500">Last Check</span>
-              <Clock className="w-6 h-6 text-blue-600" />
-            </div>
-            <p className="text-2xl font-bold">Just now</p>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm border p-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-500">Severity</span>
-              <AlertCircle className="w-6 h-6 text-orange-600" />
-            </div>
-            <p className="text-2xl font-bold">
-              {latestCheck?.analysis?.severity || 'UNKNOWN'}
-            </p>
-          </div>
-        </div>
-
-        {/* File Upload Section */}
-        <div className="bg-white rounded-lg shadow-sm border p-6 mb-8">
-          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-            <span className="text-2xl">📁</span>
-            Upload Your Log File
-          </h2>
-          <div className="space-y-4">
-            <div className="flex items-center gap-4">
-              <input
-                type="file"
-                accept=".log,.txt"
-                onChange={(e) => setFile(e.target.files?.[0] || null)}
-                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
-              />
+      {/* Main content */}
+      <div className="relative z-10">
+        {/* Hero Header */}
+        <header className="backdrop-blur-md bg-white/10 border-b border-white/20 shadow-lg">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl shadow-lg">
+                  <Shield className="w-8 h-8 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold text-white flex items-center gap-2">
+                    DevOps Health Monitor
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-300 border border-green-500/30">
+                      <span className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></span>
+                      Live
+                    </span>
+                  </h1>
+                  <p className="text-purple-200 mt-1 flex items-center gap-2">
+                    <Brain className="w-4 h-4" />
+                    AI-Powered Autonomous Monitoring System
+                  </p>
+                </div>
+              </div>
               <button
-                onClick={handleFileUpload}
-                disabled={!file || uploading}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap flex items-center gap-2"
+                onClick={fetchHealth}
+                disabled={loading}
+                className="group relative px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {uploading ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    Analyzing...
-                  </>
-                ) : (
-                  'Analyze File'
-                )}
+                <RefreshCw className={`w-5 h-5 inline mr-2 ${loading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
+                {loading ? 'Analyzing...' : 'Run Check'}
               </button>
             </div>
-            {file && (
-              <p className="text-sm text-gray-600">
-                Selected: <span className="font-medium">{file.name}</span> ({(file.size / 1024).toFixed(2)} KB)
-              </p>
-            )}
           </div>
-        </div>
+        </header>
 
-        {latestCheck?.analysis && (
-          <div className="bg-white rounded-lg shadow-sm border p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <span className="text-2xl">🤖</span>
-              AI Agent Analysis
-            </h2>
-
-            <div className="space-y-4">
-              <div>
-                <h3 className="font-semibold text-gray-700 mb-1">❌ Error:</h3>
-                <p className="text-gray-900">{latestCheck.analysis.error}</p>
+        {/* Stats Cards */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {/* Status Card */}
+            <div className="group relative backdrop-blur-md bg-white/10 rounded-2xl p-6 border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
+              <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <div className="relative">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-medium text-purple-200">System Status</span>
+                  {latestCheck?.analysis?.severity === 'LOW' ? (
+                    <CheckCircle2 className="w-6 h-6 text-green-400" />
+                  ) : (
+                    <AlertTriangle className="w-6 h-6 text-red-400" />
+                  )}
+                </div>
+                <p className="text-3xl font-bold text-white">
+                  {loading ? '...' : latestCheck?.analysis?.severity === 'LOW' ? 'Healthy' : 'Alert'}
+                </p>
+                <p className="text-xs text-purple-300 mt-2">Real-time monitoring</p>
               </div>
+            </div>
 
-              <div>
-                <h3 className="font-semibold text-gray-700 mb-1">🔍 Cause:</h3>
-                <p className="text-gray-900">{latestCheck.analysis.cause}</p>
-              </div>
-
-              <div>
-                <h3 className="font-semibold text-gray-700 mb-1">💡 Solution:</h3>
-                <p className="text-gray-900 whitespace-pre-wrap">
-                  {latestCheck.analysis.solution}
+            {/* Last Check Card */}
+            <div className="group relative backdrop-blur-md bg-white/10 rounded-2xl p-6 border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <div className="relative">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-medium text-purple-200">Last Check</span>
+                  <Clock className="w-6 h-6 text-blue-400" />
+                </div>
+                <p className="text-3xl font-bold text-white">
+                  {loading ? '...' : 'Just now'}
+                </p>
+                <p className="text-xs text-purple-300 mt-2">
+                  {latestCheck ? new Date(latestCheck.timestamp).toLocaleTimeString() : 'No data'}
                 </p>
               </div>
             </div>
-          </div>
-        )}
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mt-4">
-            <p className="text-red-800">{error}</p>
-          </div>
-        )}
+            {/* Severity Card */}
+            <div className="group relative backdrop-blur-md bg-white/10 rounded-2xl p-6 border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
+              <div className="absolute inset-0 bg-gradient-to-br from-orange-500/20 to-red-500/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <div className="relative">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-medium text-purple-200">Severity Level</span>
+                  <Activity className="w-6 h-6 text-orange-400" />
+                </div>
+                <p className="text-3xl font-bold text-white">
+                  {loading ? '...' : latestCheck?.analysis?.severity || 'N/A'}
+                </p>
+                {latestCheck?.analysis?.severity && (
+                  <div className={`mt-3 h-2 rounded-full bg-gradient-to-r ${getSeverityColor(latestCheck.analysis.severity)} shadow-lg`}></div>
+                )}
+              </div>
+            </div>
 
-        <div className="mt-8 text-center text-sm text-gray-500">
-          <p>Powered by GROQ AI • Orchestrated by Kestra • Built for Hackathon</p>
+            {/* AI Model Card */}
+            <div className="group relative backdrop-blur-md bg-white/10 rounded-2xl p-6 border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <div className="relative">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-medium text-purple-200">AI Engine</span>
+                  <Zap className="w-4 h-4 text-yellow-400" />
+                </div>
+                <p className="text-lg font-bold text-white">
+                  {loading ? '...' : latestCheck?.provider || 'GROQ AI'}
+                </p>
+                <p className="text-xs text-purple-300 mt-2">Llama 3.3 70B</p>
+              </div>
+            </div>
+          </div>
+
+          {/* AI Analysis Section */}
+          {latestCheck?.analysis && !loading && (
+            <div className="backdrop-blur-md bg-white/10 rounded-3xl p-8 border border-white/20 shadow-2xl mb-8 transform hover:scale-[1.02] transition-all duration-300">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl">
+                  <Brain className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-white">AI Agent Analysis</h2>
+                  <p className="text-purple-200 text-sm">Powered by {latestCheck.model}</p>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                {/* Error */}
+                <div className="group p-5 rounded-xl bg-red-500/10 border border-red-500/30 hover:bg-red-500/20 transition-all">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-red-400 mt-1 flex-shrink-0" />
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-red-300 mb-2">Error Detected</h3>
+                      <p className="text-white leading-relaxed">{latestCheck.analysis.error}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Cause */}
+                <div className="group p-5 rounded-xl bg-yellow-500/10 border border-yellow-500/30 hover:bg-yellow-500/20 transition-all">
+                  <div className="flex items-start gap-3">
+                    <Database className="w-5 h-5 text-yellow-400 mt-1 flex-shrink-0" />
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-yellow-300 mb-2">Root Cause</h3>
+                      <p className="text-white leading-relaxed">{latestCheck.analysis.cause}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Solution */}
+                <div className="group p-5 rounded-xl bg-green-500/10 border border-green-500/30 hover:bg-green-500/20 transition-all">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="w-5 h-5 text-green-400 mt-1 flex-shrink-0" />
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-green-300 mb-2">Recommended Solution</h3>
+                      <p className="text-white leading-relaxed whitespace-pre-wrap">{latestCheck.analysis.solution}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Loading State */}
+          {loading && (
+            <div className="backdrop-blur-md bg-white/10 rounded-3xl p-12 border border-white/20 shadow-2xl text-center">
+              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 mb-6 animate-pulse">
+                <Brain className="w-10 h-10 text-white animate-bounce" />
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-2">AI Agent Analyzing...</h3>
+              <p className="text-purple-200">Processing logs with advanced machine learning</p>
+            </div>
+          )}
+
+          {/* Error State */}
+          {error && (
+            <div className="backdrop-blur-md bg-red-500/10 rounded-2xl p-6 border border-red-500/30">
+              <p className="text-red-300">{error}</p>
+            </div>
+          )}
+
+          {/* Footer */}
+          <div className="mt-12 text-center">
+            <div className="inline-flex items-center gap-2 px-6 py-3 backdrop-blur-md bg-white/10 rounded-full border border-white/20">
+              <span className="text-purple-200 text-sm">Powered by</span>
+              <span className="font-semibold text-white">GROQ AI</span>
+              <span className="text-purple-300">•</span>
+              <span className="font-semibold text-white">Kestra</span>
+              <span className="text-purple-300">•</span>
+              <span className="font-semibold text-white">Vercel</span>
+            </div>
+            <p className="text-purple-300 text-sm mt-4">Built for AI Agents Assemble Hackathon 2024</p>
+          </div>
         </div>
       </div>
     </div>
