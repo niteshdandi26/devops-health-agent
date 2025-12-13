@@ -274,17 +274,66 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Footer */}
-          <div className="mt-12 text-center">
-            <div className="inline-flex items-center gap-2 px-6 py-3 backdrop-blur-md bg-white/10 rounded-full border border-white/20">
-              <span className="text-purple-200 text-sm">Powered by</span>
-              <span className="font-semibold text-white">GROQ AI</span>
-              <span className="text-purple-300">•</span>
-              <span className="font-semibold text-white">Kestra</span>
-              <span className="text-purple-300">•</span>
-              <span className="font-semibold text-white">Vercel</span>
+          {/* Enhanced Footer with Sponsor Logos */}
+          <div className="mt-12">
+            <div className="backdrop-blur-md bg-white/10 rounded-2xl p-8 border border-white/20">
+              <h3 className="text-center text-white font-semibold mb-6 text-lg">
+                Built With Industry-Leading Technologies
+              </h3>
+
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+                {/* GROQ AI */}
+                <div className="flex flex-col items-center gap-2 p-4 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30 hover:scale-105 transition-transform">
+                  <Zap className="w-8 h-8 text-yellow-400" />
+                  <div className="text-center">
+                    <div className="font-bold text-white text-sm">GROQ AI</div>
+                    <div className="text-xs text-purple-200">LLM Engine</div>
+                  </div>
+                </div>
+
+                {/* Kestra */}
+                <div className="flex flex-col items-center gap-2 p-4 rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-blue-500/30 hover:scale-105 transition-transform">
+                  <Activity className="w-8 h-8 text-blue-400" />
+                  <div className="text-center">
+                    <div className="font-bold text-white text-sm">Kestra</div>
+                    <div className="text-xs text-purple-200">Orchestration</div>
+                  </div>
+                </div>
+
+                {/* Vercel */}
+                <div className="flex flex-col items-center gap-2 p-4 rounded-xl bg-gradient-to-br from-slate-500/20 to-gray-500/20 border border-slate-500/30 hover:scale-105 transition-transform">
+                  <TrendingUp className="w-8 h-8 text-gray-300" />
+                  <div className="text-center">
+                    <div className="font-bold text-white text-sm">Vercel</div>
+                    <div className="text-xs text-purple-200">Deployment</div>
+                  </div>
+                </div>
+
+                {/* FastAPI */}
+                <div className="flex flex-col items-center gap-2 p-4 rounded-xl bg-gradient-to-br from-green-500/20 to-emerald-500/20 border border-green-500/30 hover:scale-105 transition-transform">
+                  <Database className="w-8 h-8 text-green-400" />
+                  <div className="text-center">
+                    <div className="font-bold text-white text-sm">FastAPI</div>
+                    <div className="text-xs text-purple-200">Backend</div>
+                  </div>
+                </div>
+
+                {/* Next.js */}
+                <div className="flex flex-col items-center gap-2 p-4 rounded-xl bg-gradient-to-br from-black/40 to-gray-800/40 border border-gray-600/30 hover:scale-105 transition-transform">
+                  <Shield className="w-8 h-8 text-white" />
+                  <div className="text-center">
+                    <div className="font-bold text-white text-sm">Next.js</div>
+                    <div className="text-xs text-purple-200">Frontend</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 text-center">
+                <p className="text-purple-300 text-sm">
+                  🏆 Built for AI Agents Assemble Hackathon 2025 by WeMakeDevs
+                </p>
+              </div>
             </div>
-            <p className="text-purple-300 text-sm mt-4">Built for AI Agents Assemble Hackathon 2024</p>
           </div>
         </div>
       </div>
