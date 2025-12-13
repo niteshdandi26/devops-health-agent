@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { RefreshCw, AlertTriangle, CheckCircle2, Clock, TrendingUp, Activity, Zap, Shield, Brain, Database } from 'lucide-react';
+import { RefreshCw, AlertTriangle, CheckCircle2, Clock, TrendingUp, Activity, Zap, Shield, Brain, Database, Upload, FileText } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
 import Link from 'next/link';
 
@@ -23,6 +23,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const fetchHealth = async () => {
     setLoading(true);
@@ -60,6 +62,43 @@ export default function Dashboard() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleFileUpload = async (selectedFile: File) => {
+    if (!selectedFile) return;
+
+    setUploading(true);
+    toast.loading('Uploading and analyzing log file...');
+
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error('Upload failed');
+
+      const data = await response.json();
+      setLatestCheck(data);
+      setFile(null);
+
+      toast.dismiss();
+      toast.success('File analyzed successfully!', {
+        description: `Severity: ${data.analysis.severity}`
+      });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Upload failed';
+
+      toast.dismiss();
+      toast.error('Upload failed', {
+        description: errorMessage
+      });
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -169,6 +208,61 @@ export default function Dashboard() {
             >
               View Full History →
             </Link>
+          </div>
+
+          {/* File Upload Section */}
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
+            <div className="backdrop-blur-md bg-white/10 rounded-2xl p-6 border border-white/20 shadow-xl hover:shadow-2xl transition-all duration-300">
+              <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                <Upload className="w-6 h-6 text-blue-400" />
+                Upload Log File for Analysis
+              </h3>
+
+              <div className="flex flex-col md:flex-row gap-4 items-center">
+                <label className="flex-1 cursor-pointer">
+                  <div className="border-2 border-dashed border-purple-400/50 rounded-xl p-8 text-center hover:border-purple-400 hover:bg-white/5 transition-all">
+                    <FileText className="w-12 h-12 text-purple-400 mx-auto mb-3" />
+                    <p className="text-white font-medium mb-1">
+                      {file ? file.name : 'Click to select or drag & drop'}
+                    </p>
+                    <p className="text-purple-300 text-sm">
+                      {file ? `${(file.size / 1024).toFixed(2)} KB` : 'Supports .log, .txt files'}
+                    </p>
+                  </div>
+                  <input
+                    type="file"
+                    accept=".log,.txt"
+                    onChange={(e) => {
+                      const selectedFile = e.target.files?.[0];
+                      if (selectedFile) {
+                        setFile(selectedFile);
+                      }
+                    }}
+                    className="hidden"
+                  />
+                </label>
+
+                {file && (
+                  <button
+                    onClick={() => handleFileUpload(file)}
+                    disabled={uploading}
+                    className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    {uploading ? (
+                      <>
+                        <RefreshCw className="w-5 h-5 animate-spin" />
+                        Analyzing...
+                      </>
+                    ) : (
+                      <>
+                        <Brain className="w-5 h-5" />
+                        Analyze File
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Stats Cards */}
