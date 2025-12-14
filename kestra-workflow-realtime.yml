@@ -1,0 +1,68 @@
+id: devops-health-monitor-realtime
+namespace: production
+description: Real-time AI-powered DevOps health monitoring with dynamic data
+
+triggers:
+  - id: schedule
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "*/10 * * * *"  # Every 10 minutes
+
+tasks:
+  - id: start_log
+    type: io.kestra.plugin.core.log.Log
+    message: |
+      🚀 Starting real-time health check...
+      ⏰ Time: {{ trigger.date }}
+
+  # Fetch real-time logs from your API
+  - id: fetch_logs
+    type: io.kestra.plugin.core.http.Request
+    uri: "https://YOUR-BACKEND-URL.vercel.app/generate-logs"
+    method: GET
+
+  - id: log_source
+    type: io.kestra.plugin.core.log.Log
+    message: |
+      📊 Fetched logs from: {{ json(outputs.fetch_logs.body).source }}
+      🕐 Timestamp: {{ json(outputs.fetch_logs.body).timestamp }}
+
+  # Send to AI for analysis
+  - id: analyze
+    type: io.kestra.plugin.core.http.Request
+    uri: "https://YOUR-BACKEND-URL.vercel.app/analyze"
+    method: POST
+    contentType: application/json
+    body: |
+      {
+        "logs": "{{ json(outputs.fetch_logs.body).logs }}"
+      }
+
+  # Display results
+  - id: show_results
+    type: io.kestra.plugin.core.log.Log
+    message: |
+      
+      ╔════════════════════════════════════════════════════════════╗
+      ║           🤖 REAL-TIME AI ANALYSIS RESULTS                ║
+      ╚════════════════════════════════════════════════════════════╝
+      
+      📡 DATA SOURCE: {{ json(outputs.fetch_logs.body).source }}
+      📊 STATUS: {{ json(outputs.analyze.body).status }}
+      🤖 MODEL: {{ json(outputs.analyze.body).model }}
+      ⚡ PROVIDER: {{ json(outputs.analyze.body).provider }}
+      
+      ❌ ERROR DETECTED:
+         {{ json(outputs.analyze.body).analysis.error }}
+      
+      🔍 ROOT CAUSE:
+         {{ json(outputs.analyze.body).analysis.cause }}
+      
+      💡 RECOMMENDED SOLUTION:
+         {{ json(outputs.analyze.body).analysis.solution }}
+      
+      ⚠️  SEVERITY LEVEL: {{ json(outputs.analyze.body).analysis.severity }}
+      
+      ╚════════════════════════════════════════════════════════════╝
+      Analysis completed at {{ json(outputs.analyze.body).timestamp }}
+      
+      ✅ Next check in 10 minutes...

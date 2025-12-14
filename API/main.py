@@ -44,6 +44,64 @@ def analyze_logs(request: LogAnalysisRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/generate-logs")
+def generate_logs():
+    """Generate realistic, varying log data for real-time monitoring"""
+    import random
+    from datetime import datetime
+    
+    errors = [
+        {
+            "type": "Database",
+            "logs": [
+                f"[{datetime.now().isoformat()}] ERROR: Database connection timeout",
+                f"[{datetime.now().isoformat()}] ERROR: Max connections reached: 100/100",
+                f"[{datetime.now().isoformat()}] CRITICAL: Connection pool exhausted"
+            ]
+        },
+        {
+            "type": "API",
+            "logs": [
+                f"[{datetime.now().isoformat()}] ERROR: API request timeout after 30s",
+                f"[{datetime.now().isoformat()}] ERROR: Rate limit exceeded: 1000 req/min",
+                f"[{datetime.now().isoformat()}] WARNING: High latency detected: 2.5s"
+            ]
+        },
+        {
+            "type": "Memory",
+            "logs": [
+                f"[{datetime.now().isoformat()}] ERROR: Memory usage critical: 95%",
+                f"[{datetime.now().isoformat()}] WARNING: Heap size exceeded threshold",
+                f"[{datetime.now().isoformat()}] CRITICAL: Out of memory exception"
+            ]
+        },
+        {
+            "type": "Disk",
+            "logs": [
+                f"[{datetime.now().isoformat()}] ERROR: Disk space low: 98% used",
+                f"[{datetime.now().isoformat()}] CRITICAL: Unable to write to disk",
+                f"[{datetime.now().isoformat()}] ERROR: I/O operation failed"
+            ]
+        },
+        {
+            "type": "Network",
+            "logs": [
+                f"[{datetime.now().isoformat()}] ERROR: Network connection lost",
+                f"[{datetime.now().isoformat()}] ERROR: DNS resolution failed",
+                f"[{datetime.now().isoformat()}] WARNING: High packet loss: 15%"
+            ]
+        }
+    ]
+    
+    # Randomly select an error scenario
+    selected = random.choice(errors)
+    
+    return {
+        "logs": "\n".join(selected["logs"]),
+        "source": selected["type"],
+        "timestamp": datetime.now().isoformat()
+    }
+
 if __name__ == "__main__":
     import uvicorn
     print("🚀 API starting at http://localhost:8000")
